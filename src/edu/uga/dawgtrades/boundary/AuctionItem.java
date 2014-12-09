@@ -24,6 +24,7 @@ import edu.uga.dawgtrades.model.Category;
 import edu.uga.dawgtrades.model.DTException;
 import edu.uga.dawgtrades.model.ObjectModel;
 import edu.uga.dawgtrades.model.RegisteredUser;
+import edu.uga.dawgtrades.model.impl.ObjectModelImpl;
 import freemarker.template.Configuration;
 import freemarker.template.DefaultObjectWrapper;
 import freemarker.template.Template;
@@ -60,7 +61,10 @@ public class AuctionItem
         String         username = null;
         String         ssid = null;
         Session        session = null;
-        List<Category> categories = null;
+        List<Category>          rv = null;
+        List<String>  categories = null;
+        String        categoryName = null;
+        Category             c  = null;
         Logic logic = null;
         ObjectModel objectModel = null;
 
@@ -98,6 +102,12 @@ public class AuctionItem
             return;
         }
         
+        objectModel = session.getObjectModel();
+        if( objectModel == null ) {
+            DTError.error( cfg, toClient, "Session expired or illegal; please log in" );
+            return;
+        }
+        
         RegisteredUser user = session.getUser();
         if( user == null ) {
             DTError.error( cfg, toClient, "Session expired or illegal; please log in" );
@@ -111,25 +121,31 @@ public class AuctionItem
 
         // Setup the data-model
         //
+   
         logic = new LogicImpl( objectModel );
-        try {
-			categories = logic.findAllCategories();
-		} catch (DTException e1) {
-
-			e1.printStackTrace();
-		}
-        Map<String, Object> root = new HashMap<String, Object>();
-        
-        
-  
-           	root.put( "username", username );
-        	root.put("categories", categories);
-       
-
-        
- 
-			
      
+        Map<String, Object> root = new HashMap<String, Object>();
+ 
+    	root.put( "username", username );
+        try {
+            rv = logic.findAllCategories();
+            // Build the data-model
+            //
+            categories = new LinkedList<String>();
+            root.put( "categories", categories );
+
+            for( int i = 0; i < rv.size(); i++ ) {
+                c = (Category) rv.get( i );
+                System.out.println(c);
+                categoryName = c.getName();
+                categories.add( categoryName );
+            }
+        }
+        catch( Exception e) {
+            DTError.error( cfg, toClient, e );
+            return;
+  
+        }
         
         
         // Merge the data-model and the template
@@ -145,3 +161,4 @@ public class AuctionItem
         toClient.close();
     }
 }
+ 
